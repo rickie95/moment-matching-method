@@ -1,5 +1,5 @@
-import numpy as np
 from scipy import optimize, stats
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -9,8 +9,8 @@ def compute_missing_value_intervals(values):
     sub = []
     sub.append(values[0])
     for i in range(1, len(values)):
-        if values[i] - values[i-1] > 1:
-            sub.append(values[i-1])
+        if values[i] - values[i - 1] > 1:
+            sub.append(values[i - 1])
             intervals.append(sub)
             sub = []
             sub.append(values[i])
@@ -19,6 +19,7 @@ def compute_missing_value_intervals(values):
     l1 = 0
     l2 = 0
     l3 = 0
+
     for e in intervals:
         if (e[1] - e[0]) >= 2:
             l1 += 1
@@ -33,20 +34,12 @@ def compute_missing_value_intervals(values):
 def create_bounds(values, feasible, missing_intervals):
     max_value = np.nanmax(values)
     min_value = np.nanmin(values)
-    print("max " + str(max_value) + " min " + str(min_value))
     upper_bounds = np.copy(values)
     lower_bounds = np.copy(values)
     for interval in missing_intervals:
         upper_bounds[interval[0]:interval[1] + 1] = max_value
         lower_bounds[interval[0]:interval[1] + 1] = min_value
     return optimize.Bounds(lower_bounds, upper_bounds, feasible)
-
-
-def shaking(serie, missing_intervs, upper, lower, power=0):  # Return a time series pertubated in his null values
-    for interval in missing_intervs:
-        values = stats.uniform.rvs(loc=-(upper / (20**power + 20)), scale=(upper / (20**power + 20)), size=(interval[1] - interval[0]+1))
-        serie[interval[0]:interval[1] + 1] += values
-    return serie
 
 
 def moments(x, order):
@@ -58,6 +51,13 @@ def autocorrelation(x, lag, k, mean):
     x_pad = np.append(x - mean, np.zeros(lag))
     x_lag = np.append(np.zeros(lag), x - mean)
     return np.dot(x_pad, x_lag) / stats.moment(x_pad, k)
+
+
+def shaking(serie, missing_intervs, upper, lower):  # , lower_bound, upper_bound):  # Return a time series pertubated in his null values
+    for interval in missing_intervs:
+        values = stats.uniform.rvs(loc=-(upper/lower), scale=2*(upper/lower), size=(interval[1] - interval[0]))
+        serie[interval[0]:interval[1]:1] += values
+    return serie
 
 
 def plot(original, predicted, xlabel=None, ylabel=None, filename=None):
