@@ -1,5 +1,6 @@
 import numpy as np
-from scipy import optimize
+from scipy import optimize, stats
+import matplotlib.pyplot as plt
 
 
 def compute_missing_value_intervals(values):
@@ -29,17 +30,49 @@ def compute_missing_value_intervals(values):
     return intervals, l1, l2, l3
 
 
-def create_bounds(values, feasible):
+def create_bounds(values, feasible, missing_intervals):
     max_value = np.nanmax(values)
     min_value = np.nanmin(values)
     print("max " + str(max_value) + " min " + str(min_value))
-    upper_bounds = np.empty(values.size)
-    lower_bounds = np.empty(values.size)
-    for i in range(values.size):
-        if values[i] is not np.nan:
-            upper_bounds[i] = values[i]
-            lower_bounds[i] = values[i]
-        else:
-            upper_bounds[i] = max_value
-            lower_bounds[i] = min_value
+    upper_bounds = np.copy(values)
+    lower_bounds = np.copy(values)
+    for interval in missing_intervals:
+        upper_bounds[interval[0]:interval[1] + 1] = max_value
+        lower_bounds[interval[0]:interval[1] + 1] = min_value
     return optimize.Bounds(lower_bounds, upper_bounds, feasible)
+
+
+def shaking(serie, missing_intervs, upper, lower, power=0):  # Return a time series pertubated in his null values
+    for interval in missing_intervs:
+        values = stats.uniform.rvs(loc=-(upper / (20**power + 20)), scale=(upper / (20**power + 20)), size=(interval[1] - interval[0]+1))
+        serie[interval[0]:interval[1] + 1] += values
+    return serie
+
+
+def moments(x, order):
+    return np.sum(np.power(x, order))/x.shape[0]
+
+
+def autocorrelation(x, lag, k, mean):
+    # [ x x x x 0 0 0 ] * [ 0 0 0 x x x x ]
+    x_pad = np.append(x - mean, np.zeros(lag))
+    x_lag = np.append(np.zeros(lag), x - mean)
+    return np.dot(x_pad, x_lag) / stats.moment(x_pad, k)
+
+
+def plot(original, predicted, xlabel=None, ylabel=None, filename=None):
+    plt.figure()
+    plt.plot(original)
+    plt.plot(predicted)
+
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+
+    if filename is None:
+        plt.show()
+    else:
+        plt.savefig(filename)
+    plt.close()
