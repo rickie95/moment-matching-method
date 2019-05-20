@@ -53,9 +53,10 @@ def autocorrelation(x, lag, k, mean):
     return np.dot(x_pad, x_lag) / stats.moment(x_pad, k)
 
 
-def shaking(serie, missing_intervs, upper, lower):  # , lower_bound, upper_bound):  # Return a time series pertubated in his null values
+def shaking(serie, missing_intervs, upper, lower, i):
     for interval in missing_intervs:
-        values = stats.uniform.rvs(loc=-(upper/lower), scale=2*(upper/lower), size=(interval[1] - interval[0]))
+        values = stats.uniform.rvs(loc=-(upper - lower)/(10**i), scale=(upper - lower)/(10**i),
+                                   size=(interval[1] - interval[0]))
         serie[interval[0]:interval[1]:1] += values
     return serie
 
