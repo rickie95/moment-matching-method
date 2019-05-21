@@ -5,7 +5,7 @@ original = None
 today = datetime.datetime.now()
 results_dir = "results_" + str(today.year) + "_" + str(today.month) + "_" + str(today.day) + "__" \
               + str(today.hour) + "_" + str(today.minute)
-os.mkdir(results_dir)
+
 save_plots = False
 
 
@@ -160,6 +160,7 @@ def solve_auxiliary_problem(x, y):
 def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == "save-plots":
+            os.mkdir(results_dir)
             save_plots = True
             print("I'm gonna save plots on a dedicated folder")
 
