@@ -1,11 +1,12 @@
 from utils import *
-import os, datetime
+import os, datetime, sys
 
 original = None
 today = datetime.datetime.now()
 results_dir = "results_" + str(today.year) + "_" + str(today.month) + "_" + str(today.day) + "__" \
               + str(today.hour) + "_" + str(today.minute)
 os.mkdir(results_dir)
+save_plots = False
 
 
 def moment_matching_method(actual_values, moment=None, autocorrelation=None, interpolated_values=None,
@@ -29,8 +30,8 @@ def moment_matching_method(actual_values, moment=None, autocorrelation=None, int
     upper_b = np.nanmax(actual_values)
     lower_b = np.nanmin(actual_values)
 
-    fname = str("starting_solution.png")
-    plot(original[200:800], x_0[200:800], str("Starting solution"), filename=os.path.join(results_dir, fname))
+    fname = os.path.join(results_dir, str("starting_solution.png")) if save_plots is True else None
+    plot(actual_values[200:800], x_0[200:800], str("Starting solution"), filename=fname)
 
     i = 1
     q = 1
@@ -40,8 +41,8 @@ def moment_matching_method(actual_values, moment=None, autocorrelation=None, int
         local_opt, local_opt_value = local_search(local_opt, moment, autocorrelation, x_0, bounds)
         print("Iteration # %3d/%3d of %3d: value %5.8f \n" % (i, q, max_iteration, local_opt_value))
 
-        fname = str("iteration_" + str(i)+".png")
-        plot(original[200:800], local_opt[200:800], str("Iteration # " + str(i)), filename=os.path.join(results_dir, fname))
+        fname = os.path.join(results_dir, str("iteration_" + str(i)+".png")) if save_plots is True else None
+        plot(actual_values[200:800], local_opt[200:800], str("Iteration # " + str(i)), filename=fname)
 
         if local_opt_value < best_opt_value:
             best_opt = local_opt
@@ -156,48 +157,62 @@ def solve_auxiliary_problem(x, y):
     return x, missing_intervals
 
 
-num_of_samples = 3000
-y = np.empty(num_of_samples)
+def main():
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "save-plots":
+            save_plots = True
+            print("I'm gonna save plots on a dedicated folder")
 
-with open('coke.csv', 'rb') as file:
-    for i in range(num_of_samples):
-        row = file.readline()
-        y[i] = float(row)
-        i += 1
-        if i == num_of_samples:
-            break
+    num_of_samples = 3000
+    y = np.empty(num_of_samples)
 
-x = np.copy(y)
-original = np.copy(x)
-x_mean = np.mean(x)
+    with open('coke.csv', 'rb') as file:
+        for i in range(num_of_samples):
+            row = file.readline()
+            y[i] = float(row)
+            i += 1
+            if i == num_of_samples:
+                break
 
-momento_k = np.empty(3)
-momento_k[0] = moments(x, 1)
-momento_k[1] = moments(x, 2)
-momento_k[2] = moments(x, 3)
+    x = np.copy(y)
+    original = np.copy(x)
+    x_mean = np.mean(x)
+
+    momento_k = np.empty(3)
+    momento_k[0] = moments(x, 1)
+    momento_k[1] = moments(x, 2)
+    momento_k[2] = moments(x, 3)
 
 
-autocorr_ = np.empty(12)
-for i in range(autocorr_.size):
-    autocorr_[i] = autocorrelation(x, i, 3, x_mean)
+    autocorr_ = np.empty(12)
+    for i in range(autocorr_.size):
+        autocorr_[i] = autocorrelation(x, i, 3, x_mean)
 
-missing_interval = (500, 600)
+    missing_interval = (500, 600)
 
-for i in range(missing_interval[0], missing_interval[1]):
-    x[i] = y[missing_interval[0] - 1]
-    y[i] = None
+    for i in range(missing_interval[0], missing_interval[1]):
+        x[i] = y[missing_interval[0] - 1]
+        y[i] = None
 
-print("\n=== Starting script ====")
-print("\nNumber of samples avaiable: " + str(num_of_samples))
+    print("\n=== Starting script ====")
+    print("\nNumber of samples avaiable: " + str(num_of_samples))
 
-solution = moment_matching_method(y, moment=momento_k, autocorrelation=autocorr_, interpolated_values=x, keep_feasible=False)
+    try:
+        solution = moment_matching_method(y, moment=momento_k, autocorrelation=autocorr_, interpolated_values=x, keep_feasible=False)
+    except Exception as ex:
+        print("Interrupted")
 
-print("The method has finished.")
+    print("The method has finished.")
 
-plot(solution, str("Final solution"), filename=os.path.join(results_dir, "final_solution.png"))
+    filename = os.path.join(results_dir, "final_solution.png") if save_plots is True else None
+    plot(original,solution, str("Final solution"), filename=filename)
 
-with open(os.path.join(results_dir, "solution.csv"), 'w') as file:
-    for i in range(num_of_samples):
-        file.write(str(str(solution[i]) + "\n"))
+    with open(os.path.join(results_dir, "solution.csv"), 'w') as file:
+        for i in range(num_of_samples):
+            file.write(str(str(solution[i]) + "\n"))
 
-print("Done.")
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()
