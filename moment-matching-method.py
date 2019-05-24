@@ -140,8 +140,8 @@ def solve_auxiliary_problem(x, y):
             for j in range(1, interval_length - 1):
                 interpolated_values[j] = (j + 1) * x[p] - j*y[p - 1] + j*(j + 1)/(4*N) * lambda_coeff
 
-            interpolated_values[r - 1] = r/2 * x[p] + (r - 1)/2*y[p-1] - 1/2 * y[p + r] + (r*r - r - 2)/(8*N) * lambda_coeff
-
+            #interpolated_values[r - 1] = r/2 * x[p] + (r - 1)/2*y[p-1] - 1/2 * y[p + r] + (r*r - r - 2)/(8*N) * lambda_coeff
+            interpolated_values[r-1] = y[p + r +1]
         if interval_length == 2:  # Case 2.a & b: a 2-value interval
             interpolated_values[0] = 2/3 * y[p - 1] + 1/3 * y[p + 2] - 1/(2*N) * lambda_coeff
             interpolated_values[1] = 2/3 * y[p + 2] + 1/3 * y[p - 1] - 1/(2*N) * lambda_coeff
@@ -180,9 +180,8 @@ def main():
     x_mean = np.mean(x)
 
     momento_k = np.empty(3)
-    momento_k[0] = moments(x, 1)
-    momento_k[1] = moments(x, 2)
-    momento_k[2] = moments(x, 3)
+    for i in range(momento_k.size):
+        momento_k[0] = moments(x, i)
 
 
     autocorr_ = np.empty(12)
@@ -201,12 +200,14 @@ def main():
     try:
         solution = moment_matching_method(y, moment=momento_k, autocorrelation=autocorr_, interpolated_values=x, keep_feasible=False)
     except Exception as ex:
-        print("Interrupted")
+        print("Some error occured.")
+    except KeyboardInterrupt as ex:
+        print("Interrupted by user.")
 
     print("The method has finished.")
 
     filename = os.path.join(results_dir, "final_solution.png") if save_plots is True else None
-    plot(original,solution, str("Final solution"), filename=filename)
+    plot(original, solution, str("Final solution"), filename=filename)
 
     with open(os.path.join(results_dir, "solution.csv"), 'w') as file:
         for i in range(num_of_samples):
@@ -215,5 +216,4 @@ def main():
     print("Done.")
 
 
-if __name__ == "__main__":
-    main()
+main()

@@ -53,18 +53,17 @@ def autocorrelation(x, lag, k, mean):
     return np.dot(x_pad, x_lag) / stats.moment(x_pad, k)
 
 
-def shaking(serie, missing_intervs, upper, lower, i):
+def shaking(serie, missing_intervs, upper, lower):
     for interval in missing_intervs:
-        values = stats.uniform.rvs(loc=-(upper - lower)/(10**i), scale=(upper - lower)/(10**i),
-                                   size=(interval[1] - interval[0]))
+        values = stats.uniform.rvs(loc=-(upper - lower)/20, scale=(upper - lower)/20, size=(interval[1] - interval[0]))
         serie[interval[0]:interval[1]:1] += values
     return serie
 
 
 def plot(original, predicted, xlabel=None, ylabel=None, filename=None):
     plt.figure()
-    plt.plot(original)
-    plt.plot(predicted)
+    plt.plot(predicted, 'r')
+    plt.plot(original, 'b')
 
     if xlabel is not None:
         plt.xlabel(xlabel)
